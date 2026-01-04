@@ -1,8 +1,5 @@
-import type Scene from "./Scene";
-
 class InteractiveCanvas {
   private canvas: HTMLCanvasElement;
-  private scene: Scene;
 
   width: number = 0;
   height: number = 0;
@@ -18,12 +15,13 @@ class InteractiveCanvas {
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;
 
-  constructor(canvas: HTMLCanvasElement, scene: Scene) {
-    this.scene = scene;
-
+  constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.canvas.style.touchAction = "none";
     this.setupCanvas();
+
+    this.scrollX = window.innerWidth / 2;
+    this.scrollY = window.innerHeight / 2;
 
     this.canvas.addEventListener("wheel", this.handleZoomAndPanWithMouseWheel, {
       passive: false,
@@ -94,7 +92,7 @@ class InteractiveCanvas {
   // Handles zooming with the mouse wheel when Ctrl is held
   private handleZoomAndPanWithMouseWheel = (e: WheelEvent) => {
     e.preventDefault();
-    if (!e.ctrlKey) {
+    if (!(e.ctrlKey || e.metaKey)) {
       this.scrollX += e.deltaX * -1;
       this.scrollY += e.deltaY * -1;
       return;
@@ -106,31 +104,36 @@ class InteractiveCanvas {
     this.zoomAtScreenPoint(zoomFactor, e.offsetX, e.offsetY);
   };
 
+  screenToWorld(screenX: number, screenY: number) {
+    return {
+      x: (screenX - this.scrollX) / this.zoom,
+      y: (screenY - this.scrollY) / this.zoom,
+    };
+  }
+
   // Zoom operation that keeps the point under the mouse cursor stationary in world space
-  private zoomAtScreenPoint = (
-    factor: number,
-    screenX: number,
-    screenY: number
-  ) => {
-    // World position under cursor BEFORE zoom
-    const worldBefore = this.scene.canvasToScene(screenX, screenY, this.zoom);
+  private zoomAtScreenPoint(factor: number, screenX: number, screenY: number) {
+    // World point under cursor BEFORE zoom
+    const before = this.screenToWorld(screenX, screenY);
 
     // Apply zoom
-    this.zoom = Math.max(
+    const newZoom = Math.max(
       this.minZoom,
       Math.min(this.maxZoom, this.zoom * factor)
     );
 
-    // World position under cursor AFTER zoom
-    const worldAfter = this.scene.canvasToScene(screenX, screenY, this.zoom);
+    // Early out (prevents micro drift at limits)
+    if (newZoom === this.zoom) return;
 
-    console.log("worldBefore", worldBefore);
-    console.log("worldAfter", worldAfter);
+    this.zoom = newZoom;
 
-    // Adjust translation to cancel drift
-    this.scrollX += (worldAfter.sceneX - worldBefore.sceneX) * this.zoom;
-    this.scrollY += (worldAfter.sceneY - worldBefore.sceneY) * this.zoom;
-  };
+    // World point under cursor AFTER zoom
+    const after = this.screenToWorld(screenX, screenY);
+
+    // Cancel drift (SCREEN SPACE)
+    this.scrollX += (after.x - before.x) * this.zoom;
+    this.scrollY += (after.y - before.y) * this.zoom;
+  }
 
   cleanup = () => {
     this.canvas.removeEventListener(

@@ -17,7 +17,7 @@ class StaticCanvas {
     this.scene = new Scene();
 
     this.interactiveCanvas = document.createElement("canvas");
-    this.camera = new InteractiveCanvas(this.interactiveCanvas, this.scene);
+    this.camera = new InteractiveCanvas(this.interactiveCanvas);
 
     this.setup();
     this.loop();
@@ -45,6 +45,8 @@ class StaticCanvas {
     const y =
       this.scene.getSceneObjects().length > 0 ? Math.random() * this.height : 0;
 
+    const color = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+
     this.scene.addSceneObject({
       id: crypto.randomUUID(),
       type: "rect",
@@ -53,7 +55,7 @@ class StaticCanvas {
         y,
         width: 100,
         height: 100,
-        fill: "red",
+        fill: color,
         stroke: "black",
         strokeWidth: 1,
       },
@@ -68,22 +70,7 @@ class StaticCanvas {
 
     ctx.save();
 
-    // console.log(
-    //   "coordinates",
-    //   JSON.stringify({
-    //     width: this.width,
-    //     height: this.height,
-    //     scrollX: this.camera.scrollX,
-    //     scrollY: this.camera.scrollY,
-    //     zoom: this.camera.zoom,
-    //   })
-    // );
-
-    const { offsetX, offsetY } = this.scene.sceneToCanvas(
-      this.camera.scrollX,
-      this.camera.scrollY
-    );
-    ctx.translate(-offsetX, -offsetY);
+    ctx.translate(this.camera.scrollX, this.camera.scrollY);
     ctx.scale(this.camera.zoom, this.camera.zoom);
 
     this.scene.getSceneObjects().forEach((sceneObject) => {
