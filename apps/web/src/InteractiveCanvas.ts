@@ -1,9 +1,6 @@
 class InteractiveCanvas {
   private canvas: HTMLCanvasElement;
 
-  width: number = 0;
-  height: number = 0;
-
   scrollX: number = 0;
   scrollY: number = 0;
 
@@ -17,9 +14,8 @@ class InteractiveCanvas {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.canvas.style.touchAction = "none";
-    this.setupCanvas();
 
+    // Offset the canvas to the center of the screen
     this.scrollX = window.innerWidth / 2;
     this.scrollY = window.innerHeight / 2;
 
@@ -31,20 +27,6 @@ class InteractiveCanvas {
     this.canvas.addEventListener("mouseup", this.handleMouseUp);
     this.canvas.addEventListener("mouseleave", this.handleMouseLeave);
   }
-
-  private setupCanvas = () => {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
-    this.canvas.style.width = `${window.innerWidth}px`;
-    this.canvas.style.height = `${window.innerHeight}px`;
-    this.canvas.style.position = "absolute";
-    this.canvas.style.top = "0";
-    this.canvas.style.left = "0";
-    this.canvas.style.zIndex = "1000";
-
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-  };
 
   private handleMouseDown = (e: MouseEvent) => {
     // Middle mouse button (button 1)
@@ -98,7 +80,7 @@ class InteractiveCanvas {
       return;
     }
 
-    const zoomIntensity = 0.001;
+    const zoomIntensity = 0.01;
     const zoomFactor = Math.exp(-e.deltaY * zoomIntensity);
 
     this.zoomAtScreenPoint(zoomFactor, e.offsetX, e.offsetY);
@@ -108,6 +90,13 @@ class InteractiveCanvas {
     return {
       x: (screenX - this.scrollX) / this.zoom,
       y: (screenY - this.scrollY) / this.zoom,
+    };
+  }
+
+  worldToScreen(worldX: number, worldY: number) {
+    return {
+      x: worldX * this.zoom + this.scrollX,
+      y: worldY * this.zoom + this.scrollY,
     };
   }
 
