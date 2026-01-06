@@ -12,6 +12,10 @@ class StaticCanvas {
 
   dpr: number = window.devicePixelRatio || 1;
 
+  // start showing grid lines at this zoom level
+  gridShowZoomThreshold: number = 4;
+  gridLineWidth: number = 0.5;
+
   constructor() {
     this.canvas = document.createElement("canvas");
     this.canvas.style.touchAction = "none";
@@ -20,7 +24,7 @@ class StaticCanvas {
 
     this.interactiveCanvas = document.createElement("canvas");
     this.interactiveCanvas.style.touchAction = "none";
-    this.camera = new InteractiveCanvas(this.interactiveCanvas);
+    this.camera = new InteractiveCanvas(this.interactiveCanvas, this.scene);
 
     this.setup();
     this.loop();
@@ -77,25 +81,49 @@ class StaticCanvas {
     });
   }
 
-  private loop = () => {
-    const ctx = this.canvas.getContext("2d");
-    if (!ctx) return;
+  private drawGrid = (ctx: CanvasRenderingContext2D) => {
+    if (this.camera.zoom < this.gridShowZoomThreshold) return;
 
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const spacing = 1;
 
-    ctx.save();
+    // Update world bounds based on current camera state
+    const worldTopLeft = this.camera.screenToWorld(0, 0);
+    const worldBottomRight = this.camera.screenToWorld(this.width, this.height);
 
-    // Scale for device pixel ratio (logical to physical pixels)
-    ctx.scale(this.dpr, this.dpr);
+    const startX = Math.floor(worldTopLeft.x / spacing) * spacing;
+    const startY = Math.floor(worldTopLeft.y / spacing) * spacing;
 
-    // Apply camera transform: scale by zoom, then translate by scroll
-    // Note: scrollX/scrollY are in screen/logical pixel space
-    // Canvas applies transforms in reverse order (last transform first),
-    // so we do translate then scale to get scale-then-translate
-    // This matches worldToScreen: screenX = worldX * zoom + scrollX
-    ctx.translate(this.camera.scrollX, this.camera.scrollY);
-    ctx.scale(this.camera.zoom, this.camera.zoom);
+    ctx.globalCompositeOperation = "overlay";
+    ctx.beginPath();
 
+    // Draw vertical lines
+    for (let x = startX; x < worldBottomRight.x; x += spacing) {
+      const sx = this.camera.worldToScreen(x, 0).x;
+
+      const snapped = Math.round(sx);
+
+      ctx.moveTo(snapped, 0);
+      ctx.lineTo(snapped, this.height);
+    }
+
+    // Draw horizontal lines
+    for (let y = startY; y < worldBottomRight.y; y += spacing) {
+      const sy = this.camera.worldToScreen(0, y).y;
+
+      const snapped = Math.round(sy);
+
+      ctx.moveTo(0, snapped);
+      ctx.lineTo(this.width, snapped);
+    }
+
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = this.gridLineWidth;
+
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+  };
+
+  private drawScene(ctx: CanvasRenderingContext2D) {
     this.scene.getSceneObjects().forEach((sceneObject) => {
       switch (sceneObject.type) {
         case "rect":
@@ -108,7 +136,39 @@ class StaticCanvas {
           );
       }
     });
+  }
 
+  private loop = () => {
+    const ctx = this.canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    ctx.save();
+
+    // Scale for device pixel ratio (logical to physical pixels)
+    ctx.scale(this.dpr, this.dpr);
+
+    // Save DPR state before applying camera transform
+    ctx.save();
+
+    // Apply camera transform: scale by zoom, then translate by scroll
+    // Note: scrollX/scrollY are in screen/logical pixel space
+    // Canvas applies transforms in reverse order (last transform first),
+    // so we do translate then scale to get scale-then-translate
+    // This matches worldToScreen: screenX = worldX * zoom + scrollX
+    ctx.translate(this.camera.scrollX, this.camera.scrollY);
+    ctx.scale(this.camera.zoom, this.camera.zoom);
+
+    this.drawScene(ctx);
+
+    // Restore camera transform, keeping DPR scaling
+    ctx.restore();
+
+    // Draw grid on top of scene (in screen space, DPR still applied)
+    this.drawGrid(ctx);
+
+    // Restore DPR scaling
     ctx.restore();
 
     requestAnimationFrame(this.loop);

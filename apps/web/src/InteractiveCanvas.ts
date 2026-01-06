@@ -1,19 +1,25 @@
+import Scene from "./Scene";
+
 class InteractiveCanvas {
   private canvas: HTMLCanvasElement;
+  private scene: Scene;
 
   scrollX: number = 0;
   scrollY: number = 0;
 
   zoom: number = 1;
-  maxZoom: number = 10;
+  maxZoom: number = 256;
   minZoom: number = 0.1;
+
+  private isSpacePressed: boolean = false;
 
   private isDragging: boolean = false;
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, scene: Scene) {
     this.canvas = canvas;
+    this.scene = scene;
 
     // Offset the canvas to the center of the screen
     this.scrollX = window.innerWidth / 2;
@@ -26,17 +32,45 @@ class InteractiveCanvas {
     this.canvas.addEventListener("mousemove", this.handleMouseMove);
     this.canvas.addEventListener("mouseup", this.handleMouseUp);
     this.canvas.addEventListener("mouseleave", this.handleMouseLeave);
+
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keyup", this.handleKeyUp);
   }
 
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (e.code === "Space") {
+      this.isSpacePressed = true;
+      // Avoid page scrolling while space is held for panning
+      e.preventDefault();
+    }
+  };
+
+  private handleKeyUp = (e: KeyboardEvent) => {
+    if (e.code === "Space") {
+      this.isSpacePressed = false;
+      e.preventDefault();
+    }
+  };
+
   private handleMouseDown = (e: MouseEvent) => {
-    // Middle mouse button (button 1)
-    if (e.button === 1) {
+    // Middle mouse button (button 1) or left mouse button (button 0) while space is held
+    if (e.button === 1 || (e.button === 0 && this.isSpacePressed)) {
       this.isDragging = true;
       this.lastMouseX = e.clientX;
       this.lastMouseY = e.clientY;
       this.canvas.style.cursor = "grabbing";
     }
+
+    if (e.button === 0) {
+      const hitTestResult = this.hitTest(e.clientX, e.clientY);
+      console.log(hitTestResult);
+    }
   };
+
+  private hitTest(x: number, y: number) {
+    const { x: worldX, y: worldY } = this.screenToWorld(x, y);
+    return this.scene.getObjectAtPosition(worldX, worldY);
+  }
 
   private handleMouseMove = (e: MouseEvent) => {
     if (this.isDragging) {
@@ -54,7 +88,7 @@ class InteractiveCanvas {
   };
 
   private handleMouseUp = (e: MouseEvent) => {
-    if (this.isDragging && e.button === 1) {
+    if (this.isDragging && (e.button === 1 || e.button === 0)) {
       this.isDragging = false;
       this.lastMouseX = 0;
       this.lastMouseY = 0;
@@ -133,6 +167,8 @@ class InteractiveCanvas {
     this.canvas.removeEventListener("mousemove", this.handleMouseMove);
     this.canvas.removeEventListener("mouseup", this.handleMouseUp);
     this.canvas.removeEventListener("mouseleave", this.handleMouseLeave);
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("keyup", this.handleKeyUp);
   };
 }
 

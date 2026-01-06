@@ -26,6 +26,23 @@ class Scene {
   addSceneObject = (sceneObject: SceneObject) => {
     this.sceneObjects.push(sceneObject);
   };
+
+  getObjectAtPosition = (
+    worldX: number,
+    worldY: number
+  ): SceneObject | null => {
+    for (let i = this.sceneObjects.length - 1; i >= 0; i--) {
+      const sceneObject = this.sceneObjects[i];
+      if (
+        sceneObject.attrs.x <= worldX &&
+        sceneObject.attrs.x + sceneObject.attrs.width >= worldX &&
+        sceneObject.attrs.y <= worldY &&
+        sceneObject.attrs.y + sceneObject.attrs.height >= worldY
+      )
+        return sceneObject;
+    }
+    return null;
+  };
 }
 
 export default Scene;
