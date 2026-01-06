@@ -1,19 +1,19 @@
-import StaticCanvas from "./StaticCanvas";
+import Renderer from "./Renderer";
 import { useEffect, useRef } from "react";
 import { Debugger } from "./Debugger";
 
 export function Canvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef_ = useRef<StaticCanvas>(null);
+  const editorRef_ = useRef<Renderer>(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const editor = new StaticCanvas();
+    const editor = new Renderer();
     editorRef_.current = editor;
 
-    container.replaceChildren(editor.canvas, editor.interactiveCanvas);
+    container.replaceChildren(editor.canvas);
 
     return () => editor.cleanup();
   }, []);

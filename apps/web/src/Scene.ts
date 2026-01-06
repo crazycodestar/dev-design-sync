@@ -27,6 +27,12 @@ class Scene {
     this.sceneObjects.push(sceneObject);
   };
 
+  getObjectById = (id: string): SceneObject | null => {
+    return (
+      this.sceneObjects.find((sceneObject) => sceneObject.id === id) ?? null
+    );
+  };
+
   getObjectAtPosition = (
     worldX: number,
     worldY: number

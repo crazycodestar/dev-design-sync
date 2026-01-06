@@ -1,10 +1,9 @@
-import InteractiveCanvas from "./InteractiveCanvas";
+import Camera from "./Camera";
 import Scene from "./Scene";
 
-class StaticCanvas {
+class Renderer {
   canvas: HTMLCanvasElement;
-  interactiveCanvas: HTMLCanvasElement;
-  camera: InteractiveCanvas;
+  camera: Camera;
   scene: Scene;
 
   width: number = 0;
@@ -22,9 +21,7 @@ class StaticCanvas {
 
     this.scene = new Scene();
 
-    this.interactiveCanvas = document.createElement("canvas");
-    this.interactiveCanvas.style.touchAction = "none";
-    this.camera = new InteractiveCanvas(this.interactiveCanvas, this.scene);
+    this.camera = new Camera(this.canvas, this.scene);
 
     this.setup();
     this.loop();
@@ -45,17 +42,6 @@ class StaticCanvas {
 
     this.canvas.style.width = `${this.width}px`;
     this.canvas.style.height = `${this.height}px`;
-
-    this.interactiveCanvas.width = this.width * this.dpr;
-    this.interactiveCanvas.height = this.height * this.dpr;
-
-    this.interactiveCanvas.style.width = `${this.width}px`;
-    this.interactiveCanvas.style.height = `${this.height}px`;
-
-    this.interactiveCanvas.style.position = "absolute";
-    this.interactiveCanvas.style.top = "0";
-    this.interactiveCanvas.style.left = "0";
-    this.interactiveCanvas.style.zIndex = "1000";
   };
 
   handleCreateElement() {
@@ -167,6 +153,7 @@ class StaticCanvas {
 
     // Draw grid on top of scene (in screen space, DPR still applied)
     this.drawGrid(ctx);
+    this.camera.drawUI(ctx);
 
     // Restore DPR scaling
     ctx.restore();
@@ -175,4 +162,4 @@ class StaticCanvas {
   };
 }
 
-export default StaticCanvas;
+export default Renderer;

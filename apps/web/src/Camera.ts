@@ -1,6 +1,6 @@
 import Scene from "./Scene";
 
-class InteractiveCanvas {
+class Camera {
   private canvas: HTMLCanvasElement;
   private scene: Scene;
 
@@ -8,14 +8,19 @@ class InteractiveCanvas {
   scrollY: number = 0;
 
   zoom: number = 1;
-  maxZoom: number = 256;
-  minZoom: number = 0.1;
+  private maxZoom: number = 256;
+  private minZoom: number = 0.1;
 
   private isSpacePressed: boolean = false;
 
   private isDragging: boolean = false;
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;
+
+  private hoveredObjectId: string | null = null;
+
+  private boundingRectStrokeWidth: number = 2;
+  private boundingRectStrokeStyle: string = "oklch(0.55 0.22 263)";
 
   constructor(canvas: HTMLCanvasElement, scene: Scene) {
     this.canvas = canvas;
@@ -59,11 +64,15 @@ class InteractiveCanvas {
       this.lastMouseX = e.clientX;
       this.lastMouseY = e.clientY;
       this.canvas.style.cursor = "grabbing";
+
+      return;
     }
 
     if (e.button === 0) {
       const hitTestResult = this.hitTest(e.clientX, e.clientY);
       console.log(hitTestResult);
+
+      return;
     }
   };
 
@@ -74,6 +83,8 @@ class InteractiveCanvas {
 
   private handleMouseMove = (e: MouseEvent) => {
     if (this.isDragging) {
+      this.hoveredObjectId = null;
+
       const deltaX = e.clientX - this.lastMouseX;
       const deltaY = e.clientY - this.lastMouseY;
 
@@ -85,6 +96,9 @@ class InteractiveCanvas {
       this.lastMouseY = e.clientY;
       // this.render();
     }
+
+    const hitTestResult = this.hitTest(e.clientX, e.clientY);
+    this.hoveredObjectId = hitTestResult?.id ?? null;
   };
 
   private handleMouseUp = (e: MouseEvent) => {
@@ -108,6 +122,8 @@ class InteractiveCanvas {
   // Handles zooming with the mouse wheel when Ctrl is held
   private handleZoomAndPanWithMouseWheel = (e: WheelEvent) => {
     e.preventDefault();
+    this.hoveredObjectId = null;
+
     if (!(e.ctrlKey || e.metaKey)) {
       this.scrollX += e.deltaX * -1;
       this.scrollY += e.deltaY * -1;
@@ -158,6 +174,34 @@ class InteractiveCanvas {
     this.scrollY += (after.y - before.y) * this.zoom;
   }
 
+  drawUI = (ctx: CanvasRenderingContext2D) => {
+    if (this.hoveredObjectId) {
+      ctx.strokeStyle = this.boundingRectStrokeStyle;
+      ctx.lineWidth = this.boundingRectStrokeWidth;
+
+      const sceneObject = this.scene.getObjectById(this.hoveredObjectId);
+      if (!sceneObject) return;
+
+      const { x, y } = this.worldToScreen(
+        sceneObject.attrs.x,
+        sceneObject.attrs.y
+      );
+      const { x: x2, y: y2 } = this.worldToScreen(
+        sceneObject.attrs.x + sceneObject.attrs.width,
+        sceneObject.attrs.y + sceneObject.attrs.height
+      );
+      const width = x2 - x;
+      const height = y2 - y;
+
+      ctx.strokeRect(
+        x - this.boundingRectStrokeWidth / 2,
+        y - this.boundingRectStrokeWidth / 2,
+        width + this.boundingRectStrokeWidth,
+        height + this.boundingRectStrokeWidth
+      );
+    }
+  };
+
   cleanup = () => {
     this.canvas.removeEventListener(
       "wheel",
@@ -172,4 +216,4 @@ class InteractiveCanvas {
   };
 }
 
-export default InteractiveCanvas;
+export default Camera;
