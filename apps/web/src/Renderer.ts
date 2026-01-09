@@ -1,10 +1,12 @@
 import Camera from "./Camera";
+import Controller from "./Controller";
 import Scene from "./Scene";
 
 class Renderer {
   canvas: HTMLCanvasElement;
   camera: Camera;
   scene: Scene;
+  controller: Controller;
 
   width: number = 0;
   height: number = 0;
@@ -20,8 +22,8 @@ class Renderer {
     this.canvas.style.touchAction = "none";
 
     this.scene = new Scene();
-
-    this.camera = new Camera(this.canvas, this.scene);
+    this.camera = new Camera(this);
+    this.controller = new Controller(this);
 
     this.setup();
     this.loop();
@@ -30,6 +32,7 @@ class Renderer {
 
   cleanup() {
     this.camera.cleanup();
+    this.controller.cleanup();
     window.removeEventListener("resize", this.setup);
   }
 
@@ -154,6 +157,7 @@ class Renderer {
     // Draw grid on top of scene (in screen space, DPR still applied)
     this.drawGrid(ctx);
     this.camera.drawUI(ctx);
+    this.controller.drawControllerUI(ctx);
 
     // Restore DPR scaling
     ctx.restore();

@@ -1,4 +1,6 @@
+import type Renderer from "./Renderer";
 import Scene from "./Scene";
+import type { SceneObject } from "./types";
 
 class Camera {
   private canvas: HTMLCanvasElement;
@@ -17,14 +19,14 @@ class Camera {
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;
 
-  private hoveredObjectId: string | null = null;
+  private hoveredObjectId: SceneObject["id"] | null = null;
 
   private boundingRectStrokeWidth: number = 2;
   private boundingRectStrokeStyle: string = "oklch(0.55 0.22 263)";
 
-  constructor(canvas: HTMLCanvasElement, scene: Scene) {
-    this.canvas = canvas;
-    this.scene = scene;
+  constructor(renderer: Renderer) {
+    this.canvas = renderer.canvas;
+    this.scene = renderer.scene;
 
     // Offset the canvas to the center of the screen
     this.scrollX = window.innerWidth / 2;
@@ -76,7 +78,7 @@ class Camera {
     }
   };
 
-  private hitTest(x: number, y: number) {
+  hitTest(x: number, y: number) {
     const { x: worldX, y: worldY } = this.screenToWorld(x, y);
     return this.scene.getObjectAtPosition(worldX, worldY);
   }
